@@ -264,7 +264,8 @@ class BERTopic:
             documents: List[str],
             embeddings: np.ndarray = None,
             images: List[str] = None,
-            y: Union[List[int], np.ndarray] = None):
+            y: Union[List[int], np.ndarray] = None,
+            lemmas: List[str] = None):
         """ Fit the models (Bert, UMAP, and, HDBSCAN) on a collection of documents and generate topics
 
         Arguments:
@@ -274,6 +275,8 @@ class BERTopic:
             images: A list of paths to the images to fit on or the images themselves
             y: The target class for (semi)-supervised modeling. Use -1 if no class for a
                specific instance is specified.
+            lemmas: processed and lemmatized documents to replace unprocessed documents at
+               cTF-IDF stage
 
         Examples:
 
@@ -301,15 +304,16 @@ class BERTopic:
         topic_model = BERTopic().fit(docs, embeddings)
         ```
         """
-        self.fit_transform(documents=documents, embeddings=embeddings, y=y, images=images)
+        self.fit_transform(documents=documents, embeddings=embeddings, y=y, images=images,
+                           lemmas=lemmas)
         return self
 
     def fit_transform(self,
                       documents: List[str],
                       embeddings: np.ndarray = None,
                       images: List[str] = None,
-                      y: Union[List[int], np.ndarray] = None) -> Tuple[List[int],
-                                                                       Union[np.ndarray, None]]:
+                      y: Union[List[int], np.ndarray] = None,
+                      lemmas: List[str] = None) -> Tuple[List[int], Union[np.ndarray, None]]:
         """ Fit the models on a collection of documents, generate topics, 
         and return the probabilities and topic per document.
 
@@ -320,6 +324,8 @@ class BERTopic:
             images: A list of paths to the images to fit on or the images themselves
             y: The target class for (semi)-supervised modeling. Use -1 if no class for a
                specific instance is specified.
+            lemmas: processed and lemmatized documents to replace unprocessed documents at
+               cTF-IDF stage
 
         Returns:
             predictions: Topic predictions for each documents
@@ -393,6 +399,10 @@ class BERTopic:
         if not self.nr_topics:
             documents = self._sort_mappings_by_frequency(documents)
 
+        # Replace unprocessed documents with lemmatized if lemmas provided
+        if lemmas is not None:
+            documents['Document'] = lemmas
+        
         # Create documents from images if we have images only
         if documents.Document.values[0] is None:
             custom_documents = self._images_to_text(documents, embeddings)    
